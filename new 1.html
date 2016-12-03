@@ -1,0 +1,114 @@
+<style type="text/css">
+	canvas { border: 1px solid #ccc }
+</style>
+<canvas id="c" ></canvas>
+<script type="text/javascript">
+//文字不被选中
+var bodyStyle = document.body.style; 
+bodyStyle.mozUserSelect = 'none'; 
+bodyStyle.webkitUserSelect = 'none'; 
+
+//解决快速移动不连续
+function distanceBetween(point1, point2) {
+  return Math.sqrt(Math.pow(point2.x - point1.x, 2) + Math.pow(point2.y - point1.y, 2));
+}
+function angleBetween(point1, point2) {
+  return Math.atan2( point2.x - point1.x, point2.y - point1.y );
+}
+
+//获取img的数据
+var img = new Image(); 
+var imgs = ['fullimage1.jpg','fullimage2.jpg']; 
+var num = Math.floor(Math.random()*2); 
+img.src = imgs[num]; 
+
+var canvas = document.querySelector('canvas'); 
+canvas.style.backgroundColor = 'transparent';
+
+var ctx = canvas.getContext('2d');
+ctx.fillStyle = 'transparent';
+
+//当img被load后获取img的width和height
+img.addEventListener('load', function(e) { 
+	var w = img.width,
+		h = img.height;
+	canvas.width = w;
+	canvas.height = h;
+	canvas.style.backgroundImage='url('+img.src+')'; 
+	ctx.fillStyle = 'gray';
+	ctx.fillRect(0, 0, w, h);//绘制矩形 
+	//ctx.fillStyle = 'red';
+	console.log(ctx.fillStyle)
+	//橡皮擦效果
+	ctx.globalCompositeOperation = 'destination-out'; 
+})
+
+
+var isDrawing, lastPoint;
+
+function eventDown(e) {
+console.log(e)
+  e.preventDefault();
+  isDrawing = true;
+  //获取移动端的touch事件
+  if(e.changedTouches){ 
+	e=e.changedTouches[e.changedTouches.length-1]; 
+  }
+  lastPoint = { x: (e.clientX + document.body.scrollLeft || e.pageX) - offsetX || 0, 
+				y: (e.clientY + document.body.scrollTop || e.pageY) - offsetY || 0 };;
+};
+
+function eventMove(e) {
+
+  e.preventDefault();
+  if (!isDrawing) return;
+  if(e.changedTouches){ 
+	e=e.changedTouches[e.changedTouches.length-1]; 
+  }
+  var currentPoint = { x: (e.clientX + document.body.scrollLeft || e.pageX) - offsetX || 0, 
+					   y: (e.clientY + document.body.scrollTop || e.pageY) - offsetY || 0 };
+  console.log(currentPoint)
+  var dist = distanceBetween(lastPoint, currentPoint);
+  var angle = angleBetween(lastPoint, currentPoint);
+  
+  for (var i = 0; i < dist; i+=5) {
+    x = lastPoint.x + (Math.sin(angle) * i) - 25;
+    y = lastPoint.y + (Math.cos(angle) * i) - 25;
+    ctx.beginPath();
+    ctx.arc(x+10, y+10, 20, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.fill(); 
+  }
+  
+  //大于60%清空画布或者其他事件
+  var w = canvas.width,
+	  h = canvas.height,
+	  j =0,
+	  data = ctx.getImageData(0,0,canvas.width,canvas.height).data;
+  for(var i=0;i<data.length;i+=4){
+    if(data[i] && data[i+1] && data[i+2] && data[i+3]){
+        j++;
+    }
+  }
+  if(j<=w*h*0.6){
+  //这里写上大于60%时的functjion
+	ctx.clearRect(0,0,w,h);
+  }
+  
+  lastPoint = currentPoint;
+};
+
+function eventUp(e) {
+  e.preventDefault();
+  isDrawing = false;
+};
+//绑定事件
+var offsetX = canvas.offsetLeft, 
+	offsetY = canvas.offsetTop; 
+canvas.addEventListener('touchstart', eventDown); 
+canvas.addEventListener('touchend', eventUp); 
+canvas.addEventListener('touchmove', eventMove); 
+canvas.addEventListener('mousedown', eventDown); 
+canvas.addEventListener('mouseup', eventUp); 
+canvas.addEventListener('mousemove', eventMove); 
+</script>
